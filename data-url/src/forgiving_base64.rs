@@ -3,6 +3,21 @@
 #[derive(Debug)]
 pub struct InvalidBase64(InvalidBase64Details);
 
+impl std::fmt::Display for InvalidBase64 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            InvalidBase64Details::UnexpectedSymbol(code_point) => {
+                write!(f, "symbol with codepoint {} not expected", code_point)
+            }
+            InvalidBase64Details::AlphabetSymbolAfterPadding => {
+                write!(f, "alphabet symbol present after padding")
+            }
+            InvalidBase64Details::LoneAlphabetSymbol => write!(f, "lone alphabet symbol present"),
+            InvalidBase64Details::Padding => write!(f, "incorrect padding"),
+        }
+    }
+}
+
 #[derive(Debug)]
 enum InvalidBase64Details {
     UnexpectedSymbol(u8),
@@ -16,6 +31,18 @@ pub enum DecodeError<E> {
     InvalidBase64(InvalidBase64),
     WriteError(E),
 }
+
+impl<E> std::fmt::Display for DecodeError<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidBase64(inner) => write!(f, "base64 not valid: {:?}", inner),
+            // TODO(lucacasonato): add a `Error` trait bound to E for data-url 0.2.0.
+            Self::WriteError(_) => write!(f, "write error"),
+        }
+    }
+}
+
+// TODO(lucacasonato): implement std::error::Error on DecodeError when E has the `Error` trait bound in data-url 0.2.0.
 
 impl<E> From<InvalidBase64Details> for DecodeError<E> {
     fn from(e: InvalidBase64Details) -> Self {
